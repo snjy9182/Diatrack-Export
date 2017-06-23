@@ -1,7 +1,7 @@
 function [] = ExportTrajDia()
     directory_name = '/Users/sunjayyoo/Dropbox/Work/Diatrack\ Export/';
-    fileName = 'HTZ1Halo_fr10ms_120mW_1.mat';  % file name 
-    load('HTZ1Halo_fr10ms_120mW_1.mat', 'tracks', 'FrameLength','lastFrameSub');  % load in variable 'tracks' & 'frameLength' from DiaTracks .mat file
+    fileName = 'HTZ1Halo_fr10ms_120mW_14.mat';  % file name 
+    load('HTZ1Halo_fr10ms_120mW_14.mat', 'tracks', 'FrameLength','lastFrameSub');  % load in variable 'tracks' & 'frameLength' from DiaTracks .mat file
     %****FOR PARTICLES FOUND INITIALLY IN FRAME #1****
     for i = 1:length(tracks{1}.Successor);  % loop for all particles found in frame #1
         coords = zeros(lastFrameSub,3);  % start with an empty matrix to place coordinates (XYZ)

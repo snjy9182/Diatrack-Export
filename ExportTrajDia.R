@@ -5,10 +5,10 @@ devtools::install_github("schmidtchristoph/reach/reach")
 library(matlabr)
 #library(R.matlab)
 library(smt)
-
+start.time = Sys.time()
 #runMatlabFct( "[] = ExportTrajDia()" )
-run_matlab_script("ExportTrajDia1.m")
-
+run_matlab_script("ExportTrajDia.m")
 file = 'test.txt'
-trackll= .readDiatrack(file)
-trackll
+trackll2= .readDiatrack(file)
+end.time = Sys.time();
+time.taken = end.time - start.time

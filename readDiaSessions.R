@@ -1,8 +1,30 @@
-#Install packages and dependencies
-install.packages("R.matlab")
-library(R.matlab)
+####readDiaSessions.R
+####Wu Lab, Johns Hopkins University
+####Author: Sun Jay Yoo
+####Date: JHune 23, 2017
 
-#readDiaSessions function definition
+#### NOTE ####
+
+#Unlike the previous MATLAB script, this script does not censor particles that only appear in one frame
+#Nevertheless, this script results in slighlty faster computation time.
+
+#### TESTING ####
+
+#A small .mat session file with 10117 frames was used to test both scripts.
+
+#Using the MATLAB script, a 67.8MB .txt file was first created and was then fed into the readDiatrack() script to output track lists. 
+#Automating this process using "matlabr" resulted in 1117 censored tracks in 1.507291 minutes.
+
+#Using this script, the intermediate .txt file no longer needed to be created and it directly resulted in track lists.
+#This script resulted in 11811 uncensored tracks in 1.461702 miniutes
+
+#### SCRIPT ###
+
+#Install packages and dependencies
+#install.packages("R.matlab")
+#library(R.matlab)
+
+#readDiaSessions function definition 
 readDiaSessions = function(file, interact = FALSE, timer = FALSE){
     
     #Interactively open window
@@ -27,8 +49,8 @@ readDiaSessions = function(file, interact = FALSE, timer = FALSE){
     data[1][[1]][[1]][[7]] <- data[1][[1]][[1]][[6]];
     data[1][[1]][[1]][[6]] <- temp;
     
-    #Data structure of data:
-    #data[FRAME][[1]][[1]][[ROWVARIABLE]][[VALUE]] 
+    #Data structure of data for future reference:
+    #data[FRAME][[1]][[1]][[ROW]][[COL]] 
     
     #Instantiate indexing variables and the track list
     startIndex = 0;
@@ -105,4 +127,3 @@ readDiaSessions = function(file, interact = FALSE, timer = FALSE){
     cat("Session file read.\n")
     return(track.list);
 } 
-
