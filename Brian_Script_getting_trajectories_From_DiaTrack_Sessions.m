@@ -6,7 +6,7 @@ formatSpec = 'Completed....file %d of %d.';
 for z = 1:length(files);  % loop for number of .mat files in directory
     fileName = files(fileIndex(z)).name;  % file name 
     load(fullfile(directory_name,fileName), 'tracks', 'FrameLength','lastFrameSub');  % load in variable 'tracks' & 'frameLength' from DiaTracks .mat file
-    %****FOR PARTICLES FOUND INITIALLY IN FRAME #1****
+    %****FOR PARTICLES FOUND INITIALLY IN FRAME #1****3
     for i = 1:length(tracks{1}.Successor);  % loop for all particles found in frame #1
         coords = zeros(lastFrameSub,3);  % start with an empty matrix to place coordinates (XYZ)
         coords(1,:) = round([tracks{1}.RefinedCooX(i),tracks{1}.RefinedCooY(i),tracks{1}.RefinedCooZ(i)]*100)/100;  % round coords to 2 decimals
