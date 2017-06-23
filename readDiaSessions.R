@@ -1,12 +1,15 @@
 ####readDiaSessions.R
 ####Wu Lab, Johns Hopkins University
 ####Author: Sun Jay Yoo
-####Date: JHune 23, 2017
+####Date: June 23, 2017
 
 #### NOTE ####
 
+#This script takes Diatrack .mat files as input, and returns a list of data frames (a track list) of all the particle trajectories.
+#The aim is to optimize and uncensor this process, instead of having to use MATLAB to extract a large .txt file which is then fed into R.
+
 #Unlike the previous MATLAB script, this script does not censor particles that only appear in one frame
-#Nevertheless, this script results in slighlty faster computation time.
+#Nevertheless, this script results in slighlty faster computation time (depending on the system).
 
 #### TESTING ####
 
@@ -15,7 +18,7 @@
 #Using the MATLAB script, a 67.8MB .txt file was first created and was then fed into the readDiatrack() script to output track lists. 
 #Automating this process using "matlabr" resulted in 1117 censored tracks in 1.507291 minutes.
 
-#Using this script, the intermediate .txt file no longer needed to be created and it directly resulted in track lists.
+#Using this script, the intermediate .txt file no longer needed to be created and the session file directly results in track lists.
 #This script resulted in 11811 uncensored tracks in 1.461702 miniutes
 
 #### SCRIPT ###
