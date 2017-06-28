@@ -19,7 +19,8 @@
 #Automating this process using "matlabr" resulted in 4488 censored tracks (should be 4487 tracks since the script does not censor first frame) in 3:48 mins.
 
 #Using this script, the intermediate .txt file no longer needed to be created and the session file directly results in track lists.
-#This script resulted in 4487 censored tracks in 2:00 mins and 34689 uncensored tracks in 2:01 mins.
+#This script resulted in 4487 censored tracks in 2:00 mins and 34689 uncensored tracks in 2:01 mins. 
+#All function inputs, except the timer and interact, was set as FALSE
 
 #### readDiaSessions ####
 
