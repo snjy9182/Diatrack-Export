@@ -6,9 +6,8 @@ library(matlabr)
 #library(R.matlab)
 library(smt)
 start.time = Sys.time()
-#runMatlabFct( "[] = ExportTrajDia()" )
-run_matlab_script("ExportTrajDia.m")
-file = 'test.txt'
+run_matlab_script("/Users/sunjayyoo/Dropbox/Work/Diatrack\ Export/ExportTrajDia.m")
+file = '/Users/sunjayyoo/Dropbox/Work/Diatrack\ Export/test.txt'
 trackll2= .readDiatrack(file)
 end.time = Sys.time();
 time.taken = end.time - start.time
