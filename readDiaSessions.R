@@ -293,17 +293,3 @@ linkSkippedFrames = function(track.list, tolerance = 3.00, maxSkip = 10){
     cat("Tracks linked.\n\n");
     return (track.list.linked);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
