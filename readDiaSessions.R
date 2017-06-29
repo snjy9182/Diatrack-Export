@@ -34,8 +34,9 @@ library(R.matlab)
 #rowWise = output .csv file in home directory of tracks in row-wise (ImageJ style) organization using outputRowWise function call
 #colWise = output .csv file in home directory of tracks in column-wise (ImageJ stye) using output
 #timer = time duration of function
+#frameRecord = add a column for frame number for each coordinate point
 
-readDiaSessions = function(file, interact = TRUE, censorSingle = TRUE, rowWise = FALSE, colWise = FALSE, timer = FALSE){
+readDiaSessions = function(file, interact = TRUE, censorSingle = TRUE, frameRecord = FALSE, rowWise = FALSE, colWise = FALSE, timer = FALSE){
     
     #Interactively open window
     if (interact == TRUE) {
@@ -112,12 +113,17 @@ readDiaSessions = function(file, interact = TRUE, censorSingle = TRUE, rowWise =
         #Create temporary track to insert into track list
         track <- data.frame(x = numeric(), y = numeric(), z = integer());
         
-        #Loop through every instance the particle exists and break once it no longer has successors
+        #Loop through every instance the particle exists and add its data to track
+        #Break once it no longer has successors
         repeat{
             RefinedCooX = round(data[frame][[1]][[1]][[2]][[index]], 2);
             RefinedCooY = round(data[frame][[1]][[1]][[1]][[index]], 2);
             RefinedCooZ = round(data[frame][[1]][[1]][[3]][[index]], digits = 1);
-            track <- rbind(track, data.frame(x = RefinedCooX, y = RefinedCooY, z = RefinedCooZ));
+            if (!frameRecord){
+                track <- rbind(track, data.frame(x = RefinedCooX, y = RefinedCooY, z = RefinedCooZ));
+            } else {
+                track <- rbind(track, data.frame(x = RefinedCooX, y = RefinedCooY, z = RefinedCooZ, frame = frame));
+            }
             if (data[frame][[1]][[1]][[7]][[index]] != 0) {
                 index = data[frame][[1]][[1]][[7]][[index]];
                 frame = frame + 1;
@@ -218,6 +224,8 @@ outputColWise = function(track.list){
 }
 
 #### outputRowWise ####
+
+#CANNOT USE LINKED TRACKED LISTS
 
 #PARAMETERS: 
 #track.list = track list output from readDiatrack or readDiaSessions
