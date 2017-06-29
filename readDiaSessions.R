@@ -35,7 +35,7 @@ library(R.matlab)
 #colWise = output .csv file in home directory of tracks in column-wise (ImageJ stye) using output
 #timer = time duration of function
 
-readDiaSessions = function(file, interact = FALSE, censorSingle = FALSE, rowWise = FALSE, colWise = FALSE, timer = FALSE){
+readDiaSessions = function(file, interact = TRUE, censorSingle = TRUE, rowWise = FALSE, colWise = FALSE, timer = FALSE){
     
     #Interactively open window
     if (interact == TRUE) {
@@ -169,6 +169,19 @@ readDiaSessions = function(file, interact = FALSE, censorSingle = FALSE, rowWise
     return(track.list);
 } 
 
+#### getStartFrame ####
+
+#PARAMETERS: 
+#track.list = named track list output
+#Note: Last five characters of the original file name without extension (cannot contain ".")
+#index = index in track list
+
+getStartFrame = function(track.list, index){
+    return(as.numeric(substr(names(track.list[index]), 
+                             gregexpr(pattern = '\\.', names(track.list[index]))[[1]][1]+1, 
+                             gregexpr(pattern = '\\.', names(track.list[index]))[[1]][2]-1)));
+}
+
 #### outputColWise ####
 
 #Install packages and dependencies
@@ -221,9 +234,7 @@ outputRowWise = function(track.list){
     for (i in 1:length(track.list)){
         
         #Extract start frame from track name
-        startFrame=  as.numeric(substr(names(track.list[i]), 
-            gregexpr(pattern = '\\.', names(track.list[i]))[[1]][1]+1, 
-            gregexpr(pattern = '\\.', names(track.list[i]))[[1]][2]-1));
+        startFrame = getStartFrame(trackl.list, i)
         
         #Create a data frame temp with trajectory, frame, and track coordinate data 
         temp <- data.frame(Trajectory = i, Frame = seq(startFrame, startFrame-1+length(track.list[[i]][[1]])), track.list[[i]]);
@@ -243,17 +254,29 @@ outputRowWise = function(track.list){
 #track.list = track list output from readDiatrack or readDiaSessions
 #tolerance = tolerance level in pixels
 #maxSkip = maximum number of frame skips
+#print = turn on/off confirmation queues
 
-linkSkippedFrames = function(track.list, tolerance = 2.00, maxSkip = 1){
+linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 9, print = TRUE){
+    
+    #Number of links counter
+    counter = 0;
     
     #Confirmation text of function call
-    cat("Linking trajectories with a tolerance of",  tolerance, "and a maximum frame skip of", maxSkip,  "...\n");
+    if (print)
+        cat("Linking trajectories with a tolerance of",  tolerance, "and a maximum frame skip of", maxSkip,  "...\n");
     
-    #Instantiate empty linked track list, starting frame of the last trajectory, max frame after skips, and index
+    #Instantiate empty linked track/frame/length list
     track.list.linked = list();
-    lastTrajFrame = as.numeric(names(track.list)[[length(track.list)]]);
+    frame.list = list();
+    length.list = list();
+    
+    #Instantiate starting frame of the last trajectory, max frame after skips, and index
+    lastTrajFrame = getStartFrame(track.list, length(track.list));
     maxFrame = maxSkip + 1;
     trajectoryIndex = 1;
+    
+    #Extract file sub-name from given track list
+    file.subname = substr(names(track.list[1]), 1, gregexpr(pattern = '\\.', names(track.list[1]))[[1]][1] - 1);
     
     #Loop through each new linked trajectory
     repeat{
@@ -261,10 +284,9 @@ linkSkippedFrames = function(track.list, tolerance = 2.00, maxSkip = 1){
         #Extract first trajectory in track list into data frame temp for linking trajectories
         temp <- track.list[[1]];
         
-        #Record its starting frame from track name
-        startFrame=  as.numeric(substr(names(track.list[1]), 
-                                       gregexpr(pattern = '\\.', names(track.list[1]))[[1]][1]+1, 
-                                       gregexpr(pattern = '\\.', names(track.list[1]))[[1]][2]-1))
+        #Record the start amd last frame of the starting trajectory from track name
+        startFrame = getStartFrame(track.list, 1);
+        lastFrame = getStartFrame(track.list, 1) + nrow(temp) - 1;
         
         #Delete the extracted first trajectory from track list and shift list to replace
         #The first trajectory in the track list is the next trajectory after the data frame temp
@@ -284,10 +306,8 @@ linkSkippedFrames = function(track.list, tolerance = 2.00, maxSkip = 1){
             #}
             
             #If the starting frame of the trajectory is beyond the maximum skips possible or the last frame, break
-            frame=  as.numeric(substr(names(track.list[i]), 
-                                           gregexpr(pattern = '\\.', names(track.list[i]))[[1]][1]+1, 
-                                           gregexpr(pattern = '\\.', names(track.list[i]))[[1]][2]-1))
-            if (i > length(track.list) || frame > startFrame + maxFrame){
+            nextFrame =  getStartFrame(track.list, i);
+            if (i > length(track.list) || nextFrame > lastFrame + maxFrame){
                 break;
             }
             
@@ -298,6 +318,9 @@ linkSkippedFrames = function(track.list, tolerance = 2.00, maxSkip = 1){
             #Check if the first XY values of trajectory and the last XY values in temp are within the set tolerance
             if (abs(lastX-nextX) <= tolerance && abs(lastY-nextY) <= tolerance){
                 
+                #Update lastFrame
+                lastFrame = getStartFrame(track.list, i) + nrow(track.list[[i]]) - 1;
+                
                 #Append trajectory to temp
                 temp <- rbind(temp, track.list[[i]]);
                 
@@ -307,12 +330,21 @@ linkSkippedFrames = function(track.list, tolerance = 2.00, maxSkip = 1){
                 #Recalculate last X and Y coordinate values of appended data frame temp
                 lastX = temp[[1]][[nrow(temp)]];
                 lastY = temp[[2]][[nrow(temp)]];
+                
+                #Increment link counter
+                counter = counter + 1;
             } else {
                 
                 #Increment index to next trajectory if nothing is found
                 i = i + 1;
             }
         }
+        
+        #Add start frame to frame list
+        frame.list[[length(frame.list) + 1]] <- startFrame;
+        
+        #Add track length to length list
+        length.list[[length(length.list) + 1]] <- nrow(temp);
         
         #Append data frame temp of the fully linked trajectory into track.list.linked and increment index
         track.list.linked[[trajectoryIndex]] <- temp;
@@ -323,7 +355,39 @@ linkSkippedFrames = function(track.list, tolerance = 2.00, maxSkip = 1){
             break;
         }
     }
+    
+    #Name track list:
+    #[File name from input].[Start frame #].[Length].[Track #]
+    names(track.list.linked) = paste(file.subname, frame.list, length.list, c(1:length(track.list.linked)), sep=".");
+    
     #Return linked track list and confirmation text
-    cat("Tracks linked.\n\n");
+    if (print)
+        cat(counter, "links found.\n\n");
     return (track.list.linked);
 }
+
+#### Extra and useless functions ####
+
+findMaxLinks = function(track.list, maxTolerance = 10, maxMaxSkip = 500){
+    minLength = length(track.list)
+    minTolerance = maxTolerance
+    minSkip = maxMaxSkip
+    cat("Searching...");
+    for (i in 1:maxTolerance){
+        for (j in 1:maxMaxSkip){
+            length = length(linkSkippedFrames(track.list, tolerance = i, maxSkip = j, print = F));
+            if (length < minLength){
+                minLength = length
+                minTolerance = i
+                minSkip = j
+            }
+            
+        }
+    }
+    cat("For the maximum number of links, with minimum tolerance and then minimum skips:")
+    cat("\nTolerance =",  tolerance)
+    cat("\nSkips =",  minSkip)
+    cat("\nLength =",  minLength)
+}
+
+
