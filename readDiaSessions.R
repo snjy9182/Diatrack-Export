@@ -28,7 +28,13 @@
 #install.packages("R.matlab")
 library(R.matlab)
 
-#readDiaSessions function definition 
+#PARAMETERS: 
+#file = filepath input if desired, interact = open menu to choose file
+#censorSingle = skip tracks that only appear for one frame
+#rowWise = output .csv file in home directory of tracks in row-wise (ImageJ style) organization using outputRowWise function call
+#colWise = output .csv file in home directory of tracks in column-wise (ImageJ stye) using output
+#timer = time duration of function
+
 readDiaSessions = function(file, interact = FALSE, censorSingle = FALSE, rowWise = FALSE, colWise = FALSE, timer = FALSE){
     
     #Interactively open window
@@ -41,8 +47,11 @@ readDiaSessions = function(file, interact = FALSE, censorSingle = FALSE, rowWise
         start.time = Sys.time()
     }
     
-    #Display starter text
+    #Collect file name information
     file.name = basename(file);
+    file.subname = substr(file.name, start=nchar(file.name)-8, stop=nchar(file.name)-4);
+    
+    #Display starter text
     cat("\nReading Diatrack session file: ",file.name,"...\n");
     
     #Pre-process data
@@ -62,6 +71,7 @@ readDiaSessions = function(file, interact = FALSE, censorSingle = FALSE, rowWise
     trajectoryIndex = 1;
     track.list = list();
     frame.list = list();
+    length.list = list();
     
     #Loop for each trajectory track to be saved into track list
     repeat{
@@ -121,13 +131,17 @@ readDiaSessions = function(file, interact = FALSE, censorSingle = FALSE, rowWise
             #Add start frame to frame list
             frame.list[[length(frame.list) + 1]] <- startFrame;
             
+            #Add track length to length list
+            length.list[[length(length.list) + 1]] <- nrow(track);
+            
             #Append temporary track for particle into track list and iterate to the next trajectory
             track.list[[trajectoryIndex]] <- track;
             trajectoryIndex = trajectoryIndex + 1;
         }
     }
-    #Name track list with their corresponding start frames
-    names(track.list)= frame.list;
+    #Name track list:
+    #[Last five characters of the file name without extension (cannot contain ".")].[Start frame #].[Length].[Track #]
+    names(track.list) = paste(file.subname, frame.list, length.list, c(1:length(track.list)), sep=".");
     
     #File read and processedconfirmation text
     cat("Session file read and processed.\n\n")
@@ -155,12 +169,14 @@ readDiaSessions = function(file, interact = FALSE, censorSingle = FALSE, rowWise
     return(track.list);
 } 
 
-#### outputTranspose ####
+#### outputColWise ####
 
 #Install packages and dependencies
 library(plyr)
 
-#outputColWise function definition 
+#PARAMETERS: 
+#track.list = track list output from readDiatrack or readDiaSessions
+
 outputColWise = function(track.list){
     
     #Confirmation text of function call
@@ -190,7 +206,9 @@ outputColWise = function(track.list){
 
 #### outputRowWise ####
 
-#outputRowWise function definition 
+#PARAMETERS: 
+#track.list = track list output from readDiatrack or readDiaSessions
+
 outputRowWise = function(track.list){
     
     #Confirmation text of function call
@@ -202,9 +220,13 @@ outputRowWise = function(track.list){
     #Loop through every trajectory in input track.list
     for (i in 1:length(track.list)){
         
+        #Extract start frame from track name
+        startFrame=  as.numeric(substr(names(track.list[i]), 
+            gregexpr(pattern = '\\.', names(track.list[i]))[[1]][1]+1, 
+            gregexpr(pattern = '\\.', names(track.list[i]))[[1]][2]-1));
+        
         #Create a data frame temp with trajectory, frame, and track coordinate data 
-        #RELIES ON TRACK NAME = START FRAME NUMBER, AND NO FRAME SKIP LINKS
-        temp <- data.frame(Trajectory = i, Frame = seq(as.numeric(names(track.list[i])), as.numeric(names(track.list[i]))-1+length(track.list[[i]][[1]])), (track.list[[i]]));
+        temp <- data.frame(Trajectory = i, Frame = seq(startFrame, startFrame-1+length(track.list[[i]][[1]])), track.list[[i]]);
         
         #Append data frame df with data frame temp
         df <- rbind(df, temp);
@@ -217,7 +239,12 @@ outputRowWise = function(track.list){
 
 #### linkSkippedFrames ####
 
-linkSkippedFrames = function(track.list, tolerance = 3.00, maxSkip = 10){
+#PARAMETERS: 
+#track.list = track list output from readDiatrack or readDiaSessions
+#tolerance = tolerance level in pixels
+#maxSkip = maximum number of frame skips
+
+linkSkippedFrames = function(track.list, tolerance = 2.00, maxSkip = 1){
     
     #Confirmation text of function call
     cat("Linking trajectories with a tolerance of",  tolerance, "and a maximum frame skip of", maxSkip,  "...\n");
@@ -231,9 +258,13 @@ linkSkippedFrames = function(track.list, tolerance = 3.00, maxSkip = 10){
     #Loop through each new linked trajectory
     repeat{
         
-        #Extract first trajectory in track list into data frame temp for linking trajectories and record its starting frame
+        #Extract first trajectory in track list into data frame temp for linking trajectories
         temp <- track.list[[1]];
-        startFrame = as.numeric(names(track.list)[[1]]) #RELIES ON TRACK NAME = START FRAME NUMBER
+        
+        #Record its starting frame from track name
+        startFrame=  as.numeric(substr(names(track.list[1]), 
+                                       gregexpr(pattern = '\\.', names(track.list[1]))[[1]][1]+1, 
+                                       gregexpr(pattern = '\\.', names(track.list[1]))[[1]][2]-1))
         
         #Delete the extracted first trajectory from track list and shift list to replace
         #The first trajectory in the track list is the next trajectory after the data frame temp
@@ -248,13 +279,15 @@ linkSkippedFrames = function(track.list, tolerance = 3.00, maxSkip = 10){
         repeat{
             
             #Break if the track list of decreasing length is empty
-            if (length(track.list) == 0){
-                break;
-            }
+            #if (length(track.list) == 0){
+            #    break;
+            #}
             
             #If the starting frame of the trajectory is beyond the maximum skips possible or the last frame, break
-            #RELIES ON TRACK NAME = START FRAME NUMBER
-            if (as.numeric(names(track.list)[[i]]) > startFrame + maxFrame || as.numeric(names(track.list)[[i]]) > lastTrajFrame){
+            frame=  as.numeric(substr(names(track.list[i]), 
+                                           gregexpr(pattern = '\\.', names(track.list[i]))[[1]][1]+1, 
+                                           gregexpr(pattern = '\\.', names(track.list[i]))[[1]][2]-1))
+            if (i > length(track.list) || frame > startFrame + maxFrame){
                 break;
             }
             
