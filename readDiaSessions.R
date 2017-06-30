@@ -3,7 +3,7 @@
 #### Author: Sun Jay Yoo
 #### Date: June 23, 2017
 
-#### NOTE ####
+#### Note ####
 
 #This script takes Diatrack .mat files as input, and returns a list of data frames (a track list) of all the particle trajectories.
 #The aim is to optimize and uncensor this process, instead of having to use MATLAB to extract a large .txt file which is then fed into R.
@@ -11,7 +11,7 @@
 #Unlike the previous MATLAB script, this script does not censor by default, but can be censored by setting censorSingle to true.
 #Either way, this script results in slighlty faster computation time (depending on the system).
 
-#### TESTING ####
+#### Testing ####
 
 #A .mat session file with 10117 frames was used to test both scripts.
 
@@ -36,7 +36,7 @@ library(R.matlab)
 #timer = time duration of function
 #frameRecord = add a column for frame number for each coordinate point
 
-readDiaSessions = function(file, interact = TRUE, censorSingle = TRUE, frameRecord = FALSE, rowWise = FALSE, colWise = FALSE, timer = FALSE){
+readDiaSessions = function(file, interact = TRUE, censorSingle = TRUE, frameRecord = TRUE, rowWise = FALSE, colWise = FALSE, timer = FALSE){
     
     #Interactively open window
     if (interact == TRUE) {
@@ -175,6 +175,18 @@ readDiaSessions = function(file, interact = TRUE, censorSingle = TRUE, frameReco
     return(track.list);
 } 
 
+#### removeFrameRecord ####
+
+#PARAMETERS:
+#track.list = track list output with frame record
+
+removeFrameRecord = function(track.list){
+    for (i in 1:length(track.list)){
+        track.list[[i]] <- track.list[[i]][-c(4)];
+    }
+    return (track.list);
+}
+
 #### getStartFrame ####
 
 #PARAMETERS: 
@@ -225,7 +237,7 @@ outputColWise = function(track.list){
 
 #### outputRowWise ####
 
-#CANNOT USE LINKED TRACKED LISTS
+#MUST USE TRACK LIST WITH FRAME RECORD
 
 #PARAMETERS: 
 #track.list = track list output from readDiatrack or readDiaSessions
@@ -233,7 +245,7 @@ outputColWise = function(track.list){
 outputRowWise = function(track.list){
     
     #Confirmation text of function call
-    cat("Writing .csv row-wise output in home directory...\n");
+    cat("Writing .csv row-wise output in current directory...\n");
     
     #Empty data frame df to be written into the .csv
     df <- NULL;
@@ -242,10 +254,10 @@ outputRowWise = function(track.list){
     for (i in 1:length(track.list)){
         
         #Extract start frame from track name
-        startFrame = getStartFrame(trackl.list, i)
+        startFrame = getStartFrame(track.list, i)
         
         #Create a data frame temp with trajectory, frame, and track coordinate data 
-        temp <- data.frame(Trajectory = i, Frame = seq(startFrame, startFrame-1+length(track.list[[i]][[1]])), track.list[[i]]);
+        temp <- data.frame(Trajectory = i, Frame = track.list[[i]][4], track.list[[i]][1:3]);
         
         #Append data frame df with data frame temp
         df <- rbind(df, temp);
@@ -253,7 +265,7 @@ outputRowWise = function(track.list){
     
     #Write the data frame df into the .csv and display confirmation text
     write.csv(df, file="outputRow.csv");
-    cat("output.csv placed in home directory.\n\n");
+    cat("output.csv placed in current directory.\n\n");
 }
 
 #### linkSkippedFrames ####
@@ -264,19 +276,18 @@ outputRowWise = function(track.list){
 #maxSkip = maximum number of frame skips
 #print = turn on/off confirmation queues
 
-linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 9, print = TRUE){
-    
-    #Number of links counter
-    counter = 0;
+linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 10){
     
     #Confirmation text of function call
-    if (print)
-        cat("Linking trajectories with a tolerance of",  tolerance, "and a maximum frame skip of", maxSkip,  "...\n");
+    cat("Linking trajectories with a tolerance of",  tolerance, "and a maximum frame skip of", maxSkip,  "...\n");
     
-    #Instantiate empty linked track/frame/length list
+    #Instantiate empty linked track list
     track.list.linked = list();
+    
+    #Instantiate frame/length/linknum list for track naming
     frame.list = list();
     length.list = list();
+    linknum.list = list();
     
     #Instantiate starting frame of the last trajectory, max frame after skips, and index
     lastTrajFrame = getStartFrame(track.list, length(track.list));
@@ -304,14 +315,12 @@ linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 9, print = 
         lastX = temp[[1]][[nrow(temp)]];
         lastY = temp[[2]][[nrow(temp)]];
         
+        #Set link counter to 0;
+        linkCounter = 0;
+        
         #Instantiate index i and loop through trajectories in track list to look for frame skips 
         i = 1;
         repeat{
-            
-            #Break if the track list of decreasing length is empty
-            #if (length(track.list) == 0){
-            #    break;
-            #}
             
             #If the starting frame of the trajectory is beyond the maximum skips possible or the last frame, break
             nextFrame =  getStartFrame(track.list, i);
@@ -340,7 +349,8 @@ linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 9, print = 
                 lastY = temp[[2]][[nrow(temp)]];
                 
                 #Increment link counter
-                counter = counter + 1;
+                linkCounter = linkCounter + 1;
+                
             } else {
                 
                 #Increment index to next trajectory if nothing is found
@@ -354,6 +364,8 @@ linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 9, print = 
         #Add track length to length list
         length.list[[length(length.list) + 1]] <- nrow(temp);
         
+        linknum.list[[length(linknum.list) + 1]] <- linkCounter;
+        
         #Append data frame temp of the fully linked trajectory into track.list.linked and increment index
         track.list.linked[[trajectoryIndex]] <- temp;
         trajectoryIndex = trajectoryIndex + 1;
@@ -365,12 +377,12 @@ linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 9, print = 
     }
     
     #Name track list:
-    #[File name from input].[Start frame #].[Length].[Track #]
-    names(track.list.linked) = paste(file.subname, frame.list, length.list, c(1:length(track.list.linked)), sep=".");
+    #[File name from input].[Start frame #].[Length].[Track #].[# of links]
+    names(track.list.linked) = paste(file.subname, frame.list, length.list, c(1:length(track.list.linked)), linknum.list, sep=".");
     
     #Return linked track list and confirmation text
-    if (print)
-        cat(counter, "links found.\n\n");
+    cat(Reduce("+", linknum.list), "links found.\n\n");
+    
     return (track.list.linked);
 }
 
