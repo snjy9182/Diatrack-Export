@@ -6,10 +6,10 @@
 #### Note ####
 
 #This script takes Diatrack .mat files as input, and returns a list of data frames (a track list) of all the particle trajectories.
-#The aim is to optimize and uncensor this process, instead of having to use MATLAB to extract a large .txt file which is then fed into R.
+#The aim is to optimize and un-censor this process, instead of having to use MATLAB to extract a large .txt file which is then fed into R.
 
-#Unlike the previous MATLAB script, this script does not censor by default, but can be censored by setting censorSingle to true.
-#Either way, this script results in slighlty faster computation time (depending on the system).
+#Additional features:
+#Adding frame records, removing frame records, outputing column-wise and row-wise to .csv files, linking skipped frames
 
 #### Testing ####
 
@@ -18,7 +18,7 @@
 #Using the MATLAB script, a 272.6MB .txt file was first created and was then fed into the readDiatrack() script to output track lists. 
 #Automating this process using "matlabr" resulted in 4488 censored tracks (should be 4487 tracks since the script does not censor first frame) in 3:48 mins.
 
-#Using this script, the intermediate .txt file no longer needed to be created and the session file directly results in track lists.
+#Using readDiaSessions, the intermediate .txt file was no longer needed to be created and the session file directly results in track lists.
 #This script resulted in 4487 censored tracks in 2:00 mins and 34689 uncensored tracks in 2:01 mins. 
 #All function inputs, except the timer and interact, was set as FALSE
 
@@ -253,9 +253,6 @@ outputRowWise = function(track.list){
     #Loop through every trajectory in input track.list
     for (i in 1:length(track.list)){
         
-        #Extract start frame from track name
-        startFrame = getStartFrame(track.list, i)
-        
         #Create a data frame temp with trajectory, frame, and track coordinate data 
         temp <- data.frame(Trajectory = i, Frame = track.list[[i]][4], track.list[[i]][1:3]);
         
@@ -274,9 +271,8 @@ outputRowWise = function(track.list){
 #track.list = track list output from readDiatrack or readDiaSessions
 #tolerance = tolerance level in pixels
 #maxSkip = maximum number of frame skips
-#print = turn on/off confirmation queues
 
-linkSkippedFrames = function(track.list, tolerance = 5.00, maxSkip = 10){
+linkSkippedFrames = function(track.list, tolerance, maxSkip){
     
     #Confirmation text of function call
     cat("Linking trajectories with a tolerance of",  tolerance, "and a maximum frame skip of", maxSkip,  "...\n");
