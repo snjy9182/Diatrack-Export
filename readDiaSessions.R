@@ -269,7 +269,7 @@ outputRowWise = function(track.list){
 
 #PARAMETERS: 
 #track.list = track list output from readDiatrack or readDiaSessions
-#tolerance = tolerance level in pixels
+#tolerance = tolerance distance level in pixels
 #maxSkip = maximum number of frame skips
 
 linkSkippedFrames = function(track.list, tolerance, maxSkip){
@@ -328,8 +328,8 @@ linkSkippedFrames = function(track.list, tolerance, maxSkip){
             nextX = track.list[[i]][[1]][[1]];
             nextY = track.list[[i]][[2]][[1]];
             
-            #Check if the first XY values of trajectory and the last XY values in temp are within the set tolerance
-            if (abs(lastX-nextX) <= tolerance && abs(lastY-nextY) <= tolerance){
+            #Check if the distance difference between the first coordinate of trajectory and the last coordinate of temp are within the set tolerance
+            if (sqrt((lastX-nextX)^2 + (lastY-nextY)^2) <= tolerance){
                 
                 #Update lastFrame
                 lastFrame = getStartFrame(track.list, i) + nrow(track.list[[i]]) - 1;
@@ -380,6 +380,7 @@ linkSkippedFrames = function(track.list, tolerance, maxSkip){
     cat(Reduce("+", linknum.list), "links found.\n\n");
     
     return (track.list.linked);
+
 }
 
 #### Extra and useless functions ####

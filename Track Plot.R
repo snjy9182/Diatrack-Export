@@ -38,22 +38,3 @@ p <- plot_ly(x = ~linkedtrackll[[1]][[1]], y = ~linkedtrackll[[1]][[2]], name = 
 for (i in 2:5)
     p <- add_trace(p, x = ~linkedtrackll[[i]][[1]], y = ~linkedtrackll[[i]][[2]], name = i, type = 'scatter', mode = 'lines', evaluation = TRUE)
 p
-
-
-
-
-
-
-
-p1 <- ggplot() + geom_line(aes(y = linkedtrackll[[1]][[2]], x = linkedtrackll[[1]][[1]]),
-                           data = linkedtrackll[[1]], stat="identity")
-p1
-
-linkedtrackll[[1]]
-
-p <- ggplot(data=linkedtrackll[[1]], aes(x=linkedtrackll[[1]][[1]], y=linkedtrackll[[1]][[2]])) +
-    geom_line() +
-    geom_point()
-
-p <- ggplotly(p)
-p
